@@ -1,8 +1,18 @@
-import { GitHubBanner, Refine, WelcomePage } from "@refinedev/core";
+import {
+  Authenticated,
+  GitHubBanner,
+  Refine,
+  WelcomePage,
+} from "@refinedev/core";
 import { DevtoolsPanel, DevtoolsProvider } from "@refinedev/devtools";
 import { RefineKbar, RefineKbarProvider } from "@refinedev/kbar";
 
-import { useNotificationProvider } from "@refinedev/antd";
+import {
+  ErrorComponent,
+  ThemedLayoutV2,
+  ThemedSiderV2,
+  useNotificationProvider,
+} from "@refinedev/antd";
 import "@refinedev/antd/dist/reset.css";
 
 import dataProvider, {
@@ -11,14 +21,35 @@ import dataProvider, {
   liveProvider,
 } from "@refinedev/hasura";
 import routerBindings, {
+  CatchAllNavigate,
   DocumentTitleHandler,
+  NavigateToResource,
   UnsavedChangesNotifier,
 } from "@refinedev/react-router-v6";
 import { App as AntdApp } from "antd";
 import { useTranslation } from "react-i18next";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import { authProvider } from "./authProvider";
+import { Header } from "./components/header";
 import { ColorModeContextProvider } from "./contexts/color-mode";
+
+import { ForgotPassword } from "./pages/forgotPassword";
+import { Login } from "./pages/login";
+import { Register } from "./pages/register";
+
+import {
+  BlogPostList,
+  BlogPostCreate,
+  BlogPostEdit,
+  BlogPostShow,
+} from "./pages/blog-posts";
+
+import {
+  CategoryList,
+  CategoryCreate,
+  CategoryEdit,
+  CategoryShow,
+} from "./pages/categories";
 
 const API_URL = "https://flowing-mammal-24.hasura.app/v1/graphql";
 const WS_URL = "ws://flowing-mammal-24.hasura.app/v1/graphql";
@@ -56,6 +87,28 @@ function App() {
                 routerProvider={routerBindings}
                 authProvider={authProvider}
                 i18nProvider={i18nProvider}
+                resources={[
+                  {
+                    name: "blog_posts",
+                    list: "/blog-posts",
+                    create: "/blog-posts/create",
+                    edit: "/blog-posts/edit/:id",
+                    show: "/blog-posts/show/:id",
+                    meta: {
+                      canDelete: true,
+                    },
+                  },
+                  {
+                    name: "categories",
+                    list: "/categories",
+                    create: "/categories/create",
+                    edit: "/categories/edit/:id",
+                    show: "/categories/show/:id",
+                    meta: {
+                      canDelete: true,
+                    },
+                  },
+                ]}
                 options={{
                   syncWithLocation: true,
                   warnWhenUnsavedChanges: true,
@@ -65,7 +118,56 @@ function App() {
                 }}
               >
                 <Routes>
-                  <Route index element={<WelcomePage />} />
+                  <Route
+                    element={
+                      <Authenticated
+                        key="authenticated-inner"
+                        fallback={<CatchAllNavigate to="/login" />}
+                      >
+                        <ThemedLayoutV2
+                          Header={() => <Header sticky />}
+                          Sider={(props) => <ThemedSiderV2 {...props} fixed />}
+                        >
+                          <Outlet />
+                        </ThemedLayoutV2>
+                      </Authenticated>
+                    }
+                  >
+                    <Route
+                      index
+                      element={<NavigateToResource resource="blog_posts" />}
+                    />
+                    <Route path="/blog-posts">
+                      <Route index element={<BlogPostList />} />
+                      <Route path="create" element={<BlogPostCreate />} />
+                      <Route path="edit/:id" element={<BlogPostEdit />} />
+                      <Route path="show/:id" element={<BlogPostShow />} />
+                    </Route>
+                    <Route path="/categories">
+                      <Route index element={<CategoryList />} />
+                      <Route path="create" element={<CategoryCreate />} />
+                      <Route path="edit/:id" element={<CategoryEdit />} />
+                      <Route path="show/:id" element={<CategoryShow />} />
+                    </Route>
+                    <Route path="*" element={<ErrorComponent />} />
+                  </Route>
+                  <Route
+                    element={
+                      <Authenticated
+                        key="authenticated-outer"
+                        fallback={<Outlet />}
+                      >
+                        <NavigateToResource />
+                      </Authenticated>
+                    }
+                  >
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route
+                      path="/forgot-password"
+                      element={<ForgotPassword />}
+                    />
+                  </Route>
                 </Routes>
                 <RefineKbar />
                 <UnsavedChangesNotifier />
